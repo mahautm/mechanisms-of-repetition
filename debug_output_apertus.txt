@@ -1,14 +1,0 @@
-`torch_dtype` is deprecated! Use `dtype` instead!
-CUDA-fused xIELU not available (No module named 'xielu') – falling back to a Python version.
-For CUDA xIELU (experimental), `pip install git+https://github.com/nickjbrowning/XIELU`
-Loading swiss-ai/Apertus-8B-2509...
-Loading checkpoint shards:   0%|          | 0/4 [00:00<?, ?it/s]Loading checkpoint shards:  25%|██▌       | 1/4 [00:05<00:17,  5.75s/it]Loading checkpoint shards:  50%|█████     | 2/4 [00:11<00:11,  5.57s/it]Loading checkpoint shards:  75%|███████▌  | 3/4 [00:16<00:05,  5.64s/it]Loading checkpoint shards: 100%|██████████| 4/4 [00:18<00:00,  3.92s/it]Loading checkpoint shards: 100%|██████████| 4/4 [00:18<00:00,  4.55s/it]
-The attention mask and the pad token id were not set. As a consequence, you may observe unexpected behavior. Please pass your input's `attention_mask` to obtain reliable results.
-Setting `pad_token_id` to `eos_token_id`:2 for open-end generation.
-The attention mask is not set and cannot be inferred from input because pad token is same as eos token. As a consequence, you may observe unexpected behavior. Please pass your input's `attention_mask` to obtain reliable results.
-Inputs: tensor([[   1, 1784, 8961, 1307, 5498, 1395]], device='cuda:0')
-Outputs 1: tensor([[    1,  1784,  8961,  1307,  5498,  1395,  6993,  1044,  1799,  1395,
-          2095,  1278, 12347,  5970,  1294,  1278,  6816,  1046,  1531,  5970,
-          1395,  8389,  1408,  1278, 28462,  1307]], device='cuda:0')
-Decoded 1: ['<s>The capital of France is Paris, which is also the largest city in the country. The city is located on the banks of']
-Done.
