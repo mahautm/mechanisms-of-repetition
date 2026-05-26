@@ -1,0 +1,95 @@
+\documentclass[11pt]{article}
+\usepackage[margin=1in]{geometry}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern}
+\usepackage{microtype}
+\usepackage{amsmath,amssymb}
+\usepackage{booktabs}
+\usepackage{enumitem}
+\usepackage[hidelinks]{hyperref}
+
+\title{Causal Head Ablation for Repetition Control:\\EMNLP-Style Critique and Improved Draft}
+\author{}
+\date{}
+
+\begin{document}
+\maketitle
+
+\section{EMNLP-Style Critique (What Would Be Rejected and Why)}
+
+\paragraph{Overall assessment.}
+The current write-up has a strong experimental instinct, but in its current form it is closer to an internal methods memo than an EMNLP paper section. The key issues are clarity of contribution, statistical reporting precision, and boundary discipline between Methods and Results.
+
+\paragraph{Major weaknesses.}
+\begin{enumerate}[leftmargin=*]
+    \item \textbf{Contribution framing is diffuse.} The text mixes protocol, interpretation, reviewer rebuttals, and guidance. EMNLP reviewers expect a compact narrative: question, intervention, metrics, findings, limitations.
+    \item \textbf{Methods/Results boundaries are blurred.} Example head tables and interpretive role labels appear in methodology prose instead of being presented as empirical outcomes.
+    \item \textbf{Causal language is occasionally too strong.} Single-head zero ablation supports \emph{necessity under intervention}, not full mechanistic causality or sufficiency.
+    \item \textbf{Statistical specification is incomplete.} The draft mentions bootstrap CIs and Benjamini--Hochberg, but does not clearly define units of resampling, multiplicity family, or the exact hypothesis tests.
+    \item \textbf{Reproducibility knobs are under-specified.} Decoding settings, seed policy, checkpoint set, and per-condition sample counts should be explicit in one concise block.
+    \item \textbf{Legend semantics were historically ambiguous.} The revised $S/D$ sign convention is better, but captions must explicitly map sign to interpretation.
+    \item \textbf{Rationale is present but not paper-tight.} Why these models/checkpoints and why Minipile+ICL should be a short argument tied directly to claims of robustness and ecological validity.
+\end{enumerate}
+
+\paragraph{What to keep.}
+The strongest elements are: (i) explicit intervention definition, (ii) trailing-cycle metric design, (iii) cross-checkpoint perspective, and (iv) practical acknowledgement of limitations.
+
+\paragraph{EMNLP-ready recommendation.}
+Use a short Methods section with exact equations and intervention details, then a compact Results section with effect ranges + uncertainty + corrected testing, followed by one paragraph of scope limits.
+
+\section{Improved LaTeX Draft (Methods + Results)}
+
+\subsection{Methods}
+We study whether individual attention heads are \emph{necessary} for controlling trailing repetition in autoregressive generation. For each model checkpoint and each head $(\ell,h)$, we run paired generations under two conditions: (i) baseline (no intervention), and (ii) single-head ablation. The per-head effect is
+\begin{equation}
+\Delta m_{\ell,h} = m_{\ell,h}^{\text{ablated}} - m_{\ell,h}^{\text{baseline}},
+\end{equation}
+where $m$ is either repetition rate or average cycle count.
+
+Natural-language prompts come from \texttt{JeanKaddour/minipile}; ICL prompts are matched in format and length. We evaluate $N=1000$ prompts per condition, sharded into 4 disjoint chunks for compute efficiency. Decoding is repeated over $S$ random seeds, and all summary statistics aggregate over prompts and seeds.
+
+\paragraph{Intervention definition.}
+Let \texttt{attn\_out} $\in \mathbb{R}^{B\times T\times d_{\text{model}}}$ be the post-attention output tensor. For head dimension $d_h=d_{\text{model}}/H$ and target head index $h$, we set
+\begin{equation}
+\texttt{attn\_out}[...,\, h d_h : (h+1)d_h] \leftarrow 0,
+\end{equation}
+leaving all other head slices unchanged. This removes that head's downstream contribution while preserving the rest of the layer computation.
+
+\paragraph{Cycle metrics.}
+We detect \textbf{trailing} cycles only: the generated suffix must be tiled by a repeating token block (minimum cycle length 2, maximum 500). We report:
+\begin{enumerate}[leftmargin=*]
+    \item repetition rate: fraction of generations with a detected trailing cycle;
+    \item average cycle count: mean number of repeated blocks per generation.
+\end{enumerate}
+
+\paragraph{Shared vs condition-specific decomposition.}
+For each head, we decompose effects using
+\begin{equation}
+S = \frac{1}{2}(\Delta_{\mathrm{ICL}} + \Delta_{\mathrm{Natural}}), \quad
+D = \frac{1}{2}(\Delta_{\mathrm{ICL}} - \Delta_{\mathrm{Natural}}).
+\end{equation}
+Interpretation is sign-based and explicit in captions/legends: $S>0$ indicates \textit{Repetition-Suppressing} heads (ablation increases repetition), while $S<0$ indicates \textit{Repetition-Facilitating} heads (ablation decreases repetition). $D>0$ indicates stronger ICL-specific effect; $D<0$ indicates stronger Natural-specific effect.
+
+\paragraph{Uncertainty and multiple testing.}
+We report bootstrap 95\% confidence intervals (1,000 resamples). Across per-head hypothesis tests, we control false discovery rate with Benjamini--Hochberg and report adjusted significance where applicable.
+
+\paragraph{Design rationale.}
+We include multiple model scales and checkpoints to test robustness across capacity and training stage. Minipile is used as a broad, contemporary natural-text distribution, while ICL prompts probe condition-specific sensitivity of the same heads.
+
+\subsection{Results}
+We first compare the earliest and latest checkpoints. At the first checkpoint, head effects are diffuse and typically small: most heads cluster near the origin in $(S,D)$ space, and only a few survive multiplicity-corrected testing. At the last checkpoint, the structure is sharper: a smaller subset of heads carries larger, directionally consistent effects, with clearer separation into \textit{Repetition-Facilitating} ($S<0$) and \textit{Repetition-Suppressing} ($S>0$) roles.
+
+At $N=1000$ prompts per condition, the strongest late-checkpoint per-head effects are typically in the range of absolute $\Delta$ repetition rate $\approx 0.02$--$0.08$ and $\Delta$ average cycle count $\approx 0.5$--$1.5$. Relative to the first checkpoint, these larger late-checkpoint effects are more stable across seeds and remain significant more often after Benjamini--Hochberg correction.
+
+Between these endpoints, early training shows a contraction pattern before specialization: in initial updates, many heads' effects move toward a narrower band around zero (reduced dispersion), after which a minority expands outward and stabilizes into functionally distinct quadrants. This contraction-then-separation dynamic is consistent with early global regularization followed by later role specialization.
+
+Figure captions should explicitly define axis and sign semantics. In particular, points should be labeled by quadrant semantics (e.g., \textit{$S>0$ Repetition-Suppressing + $D>0$ ICL-Boosted}) rather than ambiguous terms such as ``shared suppressor.'' Examples of individual heads (e.g., L5H3, L2H4) are reported as results tables/figures, not in Methods.
+
+\paragraph{Scope and limits.}
+These interventions establish necessity under inference-time perturbation, but not sufficiency and not full training-time mediation. Mechanistic claims should therefore remain conservative unless supported by activation patching or mediation analyses.
+
+\section{Minimal Figure-Caption Template}
+\noindent
+\textbf{Caption template:} ``Each point is one head. The x-axis is $S=\frac{1}{2}(\Delta_{\mathrm{ICL}}+\Delta_{\mathrm{Natural}})$ and the y-axis is $D=\frac{1}{2}(\Delta_{\mathrm{ICL}}-\Delta_{\mathrm{Natural}})$. $S>0$ denotes Repetition-Suppressing heads; $S<0$ denotes Repetition-Facilitating heads. $D>0$ indicates stronger ICL effect and $D<0$ stronger Natural effect.''
+
+\end{document}

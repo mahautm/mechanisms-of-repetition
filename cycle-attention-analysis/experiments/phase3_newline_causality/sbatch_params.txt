@@ -1,0 +1,4 @@
+SLURM Job Parameters:
+SBATCH_JOB_ID=1750821
+SBATCH_JOB_NAME=multihead_full_step0_L0
+SLURMD_NODENAME=node040

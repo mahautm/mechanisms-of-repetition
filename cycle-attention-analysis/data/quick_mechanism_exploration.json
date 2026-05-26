@@ -1,0 +1,289 @@
+{
+  "timestamp": "2025-10-03T14:30:25.586069",
+  "results": {
+    "repetitive_words": {
+      "results": [
+        {
+          "prompt": "again and again and",
+          "generated": " again and again and again and again and again and again and again and again and again and again and",
+          "repetitions": {
+            "immediate": 0,
+            "phrase": 288,
+            "total": 288
+          }
+        },
+        {
+          "prompt": "more and more and",
+          "generated": " more and more\" \"So what we need is something\" \"Like that\" \"Yeah\" \"That's what we need\" \"That's what",
+          "repetitions": {
+            "immediate": 0,
+            "phrase": 1,
+            "total": 1
+          }
+        },
+        {
+          "prompt": "over and over and",
+          "generated": " over and over again, until it gets to the point where you\u2019re completely exhausted and need to sleep",
+          "repetitions": {
+            "immediate": 0,
+            "phrase": 0,
+            "total": 0
+          }
+        },
+        {
+          "prompt": "round and round and",
+          "generated": " round, all the way to the end of the world. But she'd known that since she was little.\n\nShe'd known",
+          "repetitions": {
+            "immediate": 0,
+            "phrase": 0,
+            "total": 0
+          }
+        }
+      ],
+      "avg_repetitions": 72.25,
+      "max_repetitions": 288
+    },
+    "listing_patterns": {
+      "results": [
+        {
+          "prompt": "first, second, third,",
+          "generated": " and fourth order)\n\nThe results show that the best results in the first order are achieved by using ",
+          "repetitions": {
+            "immediate": 0,
+            "phrase": 0,
+            "total": 0
+          }
+        },
+        {
+          "prompt": "item A, item B, item C,",
+          "generated": " item D, and item E).\n\nI've tried to read some material on the matter but still have no clue on how ",
+          "repetitions": {
+            "immediate": 0,
+            "phrase": 0,
+            "total": 0
+          }
+        },
+        {
+          "prompt": "step 1, step 2, step 3,",
+          "generated": " step 4, step 5, step 6, step 7, step 8, step 9, step 10, step 11, step 12, step 13, step 14, step 1",
+          "repetitions": {
+            "immediate": 0,
+            "phrase": 0,
+            "total": 0
+          }
+        },
+        {
+          "prompt": "point one, point two, point three,",
+          "generated": " point four, and so on.\n\nIn a similar way, the \"point of maximum radius\" is a point where all the ra",
+          "repetitions": {
+            "immediate": 0,
+            "phrase": 0,
+            "total": 0
+          }
+        }
+      ],
+      "avg_repetitions": 0.0,
+      "max_repetitions": 0
+    },
+    "recursive_structures": {
+      "results": [
+        {
+          "prompt": "the thing that contains the thing that contains",
+          "generated": " the thing that contains the thing that contains the thing that contains the thing that contains the",
+          "repetitions": {
+            "immediate": 0,
+            "phrase": 142,
+            "total": 142
+          }
+        },
+        {
+          "prompt": "people who know people who know",
+          "generated": " people who know people.\"\n\n\"I have to say I can't get over it,\" said the former teacher, who asked t",
+          "repetitions": {
+            "immediate": 0,
+            "phrase": 0,
+            "total": 0
+          }
+        },
+        {
+          "prompt": "systems that control systems that control",
+          "generated": " other systems, including the electrical, fluidic, optical, and mechanical systems that control othe",
+          "repetitions": {
+            "immediate": 0,
+            "phrase": 0,
+            "total": 0
+          }
+        },
+        {
+          "prompt": "processes that create processes that create",
+          "generated": " processes.\n\nIt's like using a combination of a hammer and a screwdriver to start a car. The car wil",
+          "repetitions": {
+            "immediate": 0,
+            "phrase": 0,
+            "total": 0
+          }
+        }
+      ],
+      "avg_repetitions": 35.5,
+      "max_repetitions": 142
+    },
+    "incomplete_patterns": {
+      "results": [
+        {
+          "prompt": "if this then that, if that then",
+          "generated": " that, if that and so on, and so on, and so on.\" \"This is a great example of a series of events that",
+          "repetitions": {
+            "immediate": 0,
+            "phrase": 3,
+            "total": 3
+          }
+        },
+        {
+          "prompt": "not only A but also B, not only B but also",
+          "generated": " C, and so on. A number of the same things are said in the first place, but then a number of things ",
+          "repetitions": {
+            "immediate": 0,
+            "phrase": 0,
+            "total": 0
+          }
+        },
+        {
+          "prompt": "either X or Y, either Y or",
+          "generated": " Z, either X or Z, either X or Z, or X, Z, X, or Z. In some cases, the selection of an input from am",
+          "repetitions": {
+            "immediate": 0,
+            "phrase": 2,
+            "total": 2
+          }
+        },
+        {
+          "prompt": "both P and Q, both Q and",
+          "generated": " P, or P and Q) of a given pattern. For instance, a given pattern is either a palindrome or an inver",
+          "repetitions": {
+            "immediate": 0,
+            "phrase": 0,
+            "total": 0
+          }
+        }
+      ],
+      "avg_repetitions": 1.25,
+      "max_repetitions": 3
+    },
+    "training_artifacts": {
+      "results": [
+        {
+          "prompt": "see more at example.com, see more at",
+          "generated": " example.net, see more at example.org, see more at example.biz, see more at example.name, see more a",
+          "repetitions": {
+            "immediate": 0,
+            "phrase": 0,
+            "total": 0
+          }
+        },
+        {
+          "prompt": "copyright 2023, all rights reserved, copyright 2023,",
+          "generated": " all rights reserved, copyright 2023, all rights reserved, copyright 2023, all rights reserved, copy",
+          "repetitions": {
+            "immediate": 0,
+            "phrase": 0,
+            "total": 0
+          }
+        },
+        {
+          "prompt": "for more information please visit, for more information please",
+          "generated": " visit, for more information please visit, for more information please visit, for more information p",
+          "repetitions": {
+            "immediate": 0,
+            "phrase": 0,
+            "total": 0
+          }
+        },
+        {
+          "prompt": "click here to continue, click here to",
+          "generated": " return to the main page, or click here to return to the home page",
+          "repetitions": {
+            "immediate": 0,
+            "phrase": 0,
+            "total": 0
+          }
+        }
+      ],
+      "avg_repetitions": 0.0,
+      "max_repetitions": 0
+    },
+    "neutral_baseline": {
+      "results": [
+        {
+          "prompt": "the quick brown fox jumped over",
+          "generated": " the lazy dog, and then she was gone.\"\n\n\"Well, it's not good,\" said Mary, \"but I suppose it's not so",
+          "repetitions": {
+            "immediate": 0,
+            "phrase": 0,
+            "total": 0
+          }
+        },
+        {
+          "prompt": "in a small town near the mountains",
+          "generated": ".\n\n\"I have to leave now,\" I said.\n\n\"Don't you want to know where we're going?\" she asked.\n\n\"No.\"\n\n\"C",
+          "repetitions": {
+            "immediate": 0,
+            "phrase": 0,
+            "total": 0
+          }
+        },
+        {
+          "prompt": "scientists have recently discovered that",
+          "generated": " the Earth has been in a state of geological activity for the last 3.8 billion years, when the conti",
+          "repetitions": {
+            "immediate": 0,
+            "phrase": 0,
+            "total": 0
+          }
+        },
+        {
+          "prompt": "the weather forecast shows partly cloudy",
+          "generated": " skies for the rest of the week, but it may be that the rain will subside and the temperatures will ",
+          "repetitions": {
+            "immediate": 0,
+            "phrase": 0,
+            "total": 0
+          }
+        }
+      ],
+      "avg_repetitions": 0.0,
+      "max_repetitions": 0
+    }
+  },
+  "analysis": {
+    "ranked_categories": [
+      [
+        "repetitive_words",
+        72.25
+      ],
+      [
+        "recursive_structures",
+        35.5
+      ],
+      [
+        "incomplete_patterns",
+        1.25
+      ],
+      [
+        "listing_patterns",
+        0.0
+      ],
+      [
+        "training_artifacts",
+        0.0
+      ],
+      [
+        "neutral_baseline",
+        0.0
+      ]
+    ],
+    "most_effective_mechanism": "repetitive_words",
+    "effectiveness_ratio": 722.5,
+    "conclusion": "\ud83c\udfaf STRONG CAUSAL EVIDENCE FOUND!",
+    "baseline_avg": 0.0
+  }
+}

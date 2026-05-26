@@ -1,0 +1,39 @@
+{
+  "timestamp": "2025-10-03T14:21:38.219740",
+  "newline_token_id": 187,
+  "results": [
+    {
+      "case": "List with newlines",
+      "with_newlines_reps": 0,
+      "without_newlines_reps": 0,
+      "reduction": 0,
+      "effect": "NO_EFFECT",
+      "sample_with_nl": "\nI am trying to get the sum of all the \"Apple\" values in a column.\nI am using the following code:\nva",
+      "sample_without_nl": "\n-   [Apple Banana Cherry Date](#apple-banana-cherry-date)\n-   [Apple Banana Cherry Date](#apple-ban"
+    },
+    {
+      "case": "Steps with newlines",
+      "with_newlines_reps": 0,
+      "without_newlines_reps": 0,
+      "reduction": 0,
+      "effect": "NO_EFFECT",
+      "sample_with_nl": "\nA:\n\nI suggest you to use ThreadPoolExecutor with max concurrency and a fixed backoff rate. This way",
+      "sample_without_nl": "\n3. Start:\n    a. Start:\n        b. Start:\n        c. Start:\n        d. Start:\n    b. Start:\n       "
+    },
+    {
+      "case": "Paragraphs with newlines",
+      "with_newlines_reps": 0,
+      "without_newlines_reps": 0,
+      "reduction": 0,
+      "effect": "NO_EFFECT",
+      "sample_with_nl": "\nFourth paragraph.\n\nFifth paragraph.\n\nSixth paragraph.\n\n_In a similar vein, the following sentences ",
+      "sample_without_nl": "\nI am trying to implement the following flowchart:\n\nThis is what I have so far:\n\nThe problem is that"
+    }
+  ],
+  "summary": {
+    "causal_cases": 0,
+    "total_cases": 3,
+    "total_reduction": 0,
+    "evidence_strength": 0.0
+  }
+}

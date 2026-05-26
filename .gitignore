@@ -1,0 +1,42 @@
+# Python bytecode and virtualenvs
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.venv/
+
+# Editor / swap files
+*.swp
+*.swo
+
+# Runtime logs and scheduler artifacts
+*.log
+*.out
+*.err
+slurm-*.out
+slurm-*.err
+
+# Generated experiment outputs
+outputs/
+outputs_*/
+plots/
+lenses/
+lenses_*/
+logs/
+cycle_evolution_results/
+entropy_evolution_results/
+ablation_results_*/
+test_mlp_pipeline_output/
+data/confidence_training_*/
+
+# Heavy model artifacts
+*.pt
+*.pth
+*.bin
+*.ckpt
+*.safetensors
+*.npy
+*.npz
+
+# Cache / OS noise
+.DS_Store
