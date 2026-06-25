@@ -1,10 +1,11 @@
 # Parrots: Paper Experiment Runbook
 
-This repository contains the code used to analyze how repetition behavior emerges during training in Pythia models. The paper artifact is [repetition_alluvial_paper.pdf](repetition_alluvial_paper.pdf).
+This repository contains the code used to analyze how repetition behavior emerges during training in Pythia models. This corresponds to experiments from the paper Repetitions are not all alike: distinct mechanisms sustain repetition in
+language models, available on arxiv: https://arxiv.org/abs/2504.01100
 
 ## What This README Gives You
 
-1. A paper-focused map of experiments.
+1. A map of experiments.
 2. For each experiment: how to run data generation and how to produce plots.
 3. Expected output files for quick verification.
 
@@ -12,13 +13,6 @@ This repository contains the code used to analyze how repetition behavior emerge
 
 ```bash
 poetry install
-```
-
-Cluster policy in this workspace uses `srun` + `conda activate parr`. Reuse this wrapper:
-
-```bash
-srun --partition=alien --qos=alien --exclude=node044 \
-  bash -lc 'source ~/.bashrc && conda activate parr && <COMMAND>'
 ```
 
 ## Paper Experiments Index
