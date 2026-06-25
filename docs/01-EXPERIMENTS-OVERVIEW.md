@@ -11,9 +11,9 @@ This project investigates repetitive text generation behavior in transformer lan
 
 ---
 
-## 1. Paper Experiments (Repetition Alluvial Paper)
+## 1. Paper Experiments
 
-The paper `repetition_alluvial_paper.pdf` focuses on tracking how repetition behavior evolves across model training checkpoints.
+The paper [`Repetitions are not all alike: distinct mechanisms sustain repetition in language models`](https://arxiv.org/abs/2504.01100) focuses on tracking how repetition behavior evolves across model training checkpoints.
 
 ### Main Paper Scripts
 
@@ -22,7 +22,6 @@ The paper `repetition_alluvial_paper.pdf` focuses on tracking how repetition beh
 1. **`run_alluvial_dual.py`** - Main visualization script
    - Creates dual alluvial plots showing repetition evolution
    - Compares ICL (In-Context Learning) vs Natural conditions
-   - Uses layer 19 attention analysis
    - Outputs: `alluvial_layer_19_dual.{png,pdf}`
 
 2. **`run_cycle_evolution.py`** - Cycle evolution tracking
@@ -85,10 +84,7 @@ The paper analyzes Pythia-1.4b at these training stages:
 ### Data Files
 
 Key datasets used in paper experiments:
-- `data/human_lama_parrots_list_v1.csv` - Human-curated LAMA slot-filling examples
-- `data/lama.csv` - Original LAMA dataset
-- `outputs_multihead_full/` - Full multi-head analysis results
-- `test_mlp_pipeline_output/` - MLP evolution data
+- minipile
 
 ### Output Structure
 
@@ -213,42 +209,6 @@ Shared utilities and infrastructure used by all experiments.
 11. **`scripts/train_mlp_lenses.sh`** - Train MLP lenses
     - Batch script for lens training across layers
 
----
-
-## 3. Other Experiments (Exploratory Research)
-
-Additional experiments not part of the main paper.
-
-### Cycle-Attention Analysis (Breakthrough Research)
-
-**Location:** `cycle-attention-analysis/`
-
-This is a comprehensive investigation into causal mechanisms of repetition. See `cycle-attention-analysis/README.md` for full details.
-
-#### Key Findings (from BREAKTHROUGH_RESEARCH_SUMMARY.md):
-- **Discovered:** Semantic repetition patterns causally trigger repetitive generation
-- **Best technique:** `"more and more and"` → 288 repetitions (993.3x baseline)
-- **Disproved:** Direct attention interventions, newline causality hypotheses
-- **Status:** Deployment-ready repetition induction techniques
-
-#### Experiment Phases:
-
-1. **Phase 1:** Direct Interventions (`experiments/early_interventions/`)
-   - Results: 0% success (ruled out approach)
-   - Scripts: `causal_attention_intervention.py`, `activation_patching_intervention.py`
-
-2. **Phase 3:** Newline Causality (`experiments/phase3_newline_causality/`)
-   - Results: 8.3% evidence (correlation ≠ causation)
-   - Scripts: `investigate_newline_causality.py`, `analyze_attention_fallback.py`
-
-3. **Phase 4:** Alternative Mechanisms (BREAKTHROUGH)
-   - Results: 722.5x effectiveness
-   - Discovered semantic triggers work
-
-4. **Phase 5-6:** Exploitation & Validation
-   - Results: 993.3x effectiveness
-   - Deployment-ready techniques
-
 ### Entropy Analysis
 
 1. **`logit_entropy_analysis.py`** - Logit entropy during generation
@@ -267,7 +227,7 @@ This is a comprehensive investigation into causal mechanisms of repetition. See 
 
 **Location:** `ablation_results_natural_to_no_cycle_icl/`
 
-- Tests specific interventions on HellaSwag task
+- Tests specific interventions on HellaSwag and minipile task
 - Results for different checkpoints:
   - `ablation_results_hellaswag_step1.json`
   - `ablation_results_hellaswag_step1000.json`
@@ -342,6 +302,7 @@ This is a comprehensive investigation into causal mechanisms of repetition. See 
 ### Currently Used (Paper):
 - **EleutherAI/pythia-1.4b** - Primary model for paper experiments
 - Checkpoints: step1, step1000, step5000, step10000, step100000, steplatest
+- Olmo 1b
 
 ### Supported in Code:
 The infrastructure supports any HuggingFace causal language model:
@@ -387,81 +348,6 @@ The infrastructure supports any HuggingFace causal language model:
 4. **Multi-head Analysis** - Infrastructure ready
    - Update shell scripts with OLMo model names
    - Adjust layer/head counts for OLMo architecture
-
-### ⚠️ Challenges for Full Paper Replication:
-
-1. **Training Checkpoints:**
-   - Paper uses Pythia's intermediate checkpoints (step1, step1000, etc.)
-   - OLMo checkpoints need to be available on HuggingFace
-   - AllenAI provides some OLMo checkpoints, check availability
-
-2. **Architecture Differences:**
-   - Pythia-1.4b: 24 layers, 16 heads per layer
-   - OLMo variants have different architectures
-   - Need to adjust `max_layer_idx`, `n_head` parameters
-
-3. **Tokenizer Differences:**
-   - Different vocabularies may affect slot-filling results
-   - Cycle detection should still work but patterns may differ
-
-### 🔄 How to Adapt for OLMo:
-
-#### Step 1: Test Basic Functionality
-```bash
-# Test slot-filling with OLMo
-python -m parrots.slot_filling \
-    --model-name allenai/OLMo-1B-hf \
-    --data-path data/human_lama_parrots_list_v1.csv \
-    --output-path outputs/OLMo-1B/
-```
-
-#### Step 2: Adjust Shell Scripts
-```bash
-# In scripts/run_full_multihead_analysis.sh
-MODEL_NAME="allenai/OLMo-1B-hf"
-# Adjust max_layer based on OLMo architecture (check model config)
-for layer_idx in {0..11}; do  # OLMo-1B has 12 layers
-    ...
-done
-```
-
-#### Step 3: Find OLMo Checkpoints
-Check HuggingFace for available OLMo checkpoints:
-- allenai/OLMo-1B-hf (final checkpoint)
-- allenai/OLMo-1B-0424 (intermediate checkpoints?)
-- Check AllenAI documentation for checkpoint availability
-
-#### Step 4: Run Modified Experiments
-```bash
-# Run cycle evolution with OLMo
-# Modify run_cycle_evolution.py to use OLMo paths
-# Update checkpoints list to match available OLMo checkpoints
-```
-
-### 📝 Recommended OLMo Experiment Workflow:
-
-1. **Single Checkpoint Analysis First:**
-   - Start with final OLMo model
-   - Run slot-filling, cycle detection, attention analysis
-   - Verify infrastructure works
-
-2. **Compare OLMo vs Pythia:**
-   - Run same experiments on both
-   - Compare repetition behaviors
-   - Document differences
-
-3. **If Intermediate Checkpoints Available:**
-   - Replicate full training evolution analysis
-   - Create alluvial plots for OLMo
-   - Compare training dynamics
-
-4. **Novel OLMo Research:**
-   - OLMo's open training data enables unique analyses
-   - Could trace repetition back to specific training examples
-   - Compare OLMo training dynamics to Pythia
-
----
-
 ## Quick Start for New Experiments
 
 ### Running Paper Experiments:
@@ -497,10 +383,6 @@ python -m parrots.aa_fortu.aa_fortu \
 
 ---
 
-## Citation
-
-If using this code, please cite the repetition alluvial paper (reference in `repetition_alluvial_paper.pdf`).
-
 ## Contact
 
-For questions about reproducing experiments or adapting for new models, contact the original authors.
+For questions about reproducing experiments or adapting for new models, contact mateo.mahaut@gmail.com
