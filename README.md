@@ -51,7 +51,7 @@ After each experiment, check that at least one expected output file exists:
 
 - Core package: [parrots](parrots)
 - Datasets: [data/human_lama_parrots_list_v1.csv](data/human_lama_parrots_list_v1.csv), [data/lama.csv](data/lama.csv)
-- Main run scripts: [run_alluvial_dual.py](run_alluvial_dual.py), [run_cycle_evolution.py](run_cycle_evolution.py), [run_mlp_evolution.py](run_mlp_evolution.py)
+- Main run scripts: [parrots/aa_fortu/multihead_analysis_graphs.py](parrots/aa_fortu/multihead_analysis_graphs.py), [run_cycle_evolution.py](run_cycle_evolution.py), [run_mlp_evolution.py](run_mlp_evolution.py)
 - Evolution analyses: [cycle_evolution_original_vs_learnt.py](cycle_evolution_original_vs_learnt.py), [entropy_evolution_analysis.py](entropy_evolution_analysis.py)
 - Plotting helpers: [create_repetition_alluvial.py](create_repetition_alluvial.py), [plot_original_vs_acquired_evolution.py](plot_original_vs_acquired_evolution.py)
 - Extended docs: [docs/01-EXPERIMENTS-OVERVIEW.md](docs/01-EXPERIMENTS-OVERVIEW.md)
