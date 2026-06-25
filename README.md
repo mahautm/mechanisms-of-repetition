@@ -43,7 +43,7 @@ python -m parrots.slot_filling \
     outputs/pythia-test/results.csv
 
 # Generate alluvial plots (requires pre-computed data)
-python run_alluvial_dual.py
+python parrots/aa_fortu/multihead_analysis_graphs.py
 python run_cycle_evolution.py
 ```
 
@@ -82,7 +82,7 @@ The core experiments for the repetition alluvial paper:
 - **Slot-filling evaluation** (`parrots/slot_filling.py`)
 - **Cycle evolution analysis** (`run_cycle_evolution.py`)
 - **Multi-head attention analysis** (`parrots/aa_fortu/`)
-- **Alluvial visualizations** (`run_alluvial_dual.py`)
+- **Alluvial visualizations** (`parrots/aa_fortu/multihead_analysis_graphs.py`)
 
 ### Common Infrastructure
 Shared utilities used across all experiments:
