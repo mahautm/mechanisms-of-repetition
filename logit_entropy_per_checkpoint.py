@@ -248,12 +248,38 @@ def create_checkpoint_entropy_plot(df, checkpoint_name, model_name, output_path)
         sns.boxplot(data=df_filtered, x='cycle', y='entropy_values', hue='data_type', 
                     ax=ax, palette=palette_filtered)
         
+        values = df_filtered['entropy_values'].dropna().to_numpy()
+        lower_bound = float(np.min(values)) if len(values) > 0 else 0.0
+        upper_bound = float(np.max(values)) if len(values) > 0 else 8.0
+        margin = max(0.2, 0.05 * (upper_bound - lower_bound)) if upper_bound > lower_bound else 0.2
+        
+        if lower_bound < -0.5 or upper_bound > 8.5:
+            ax.set_ylim(lower_bound - margin, upper_bound + margin)
+            axis_color = '#b45309'
+            ax.spines['left'].set_color(axis_color)
+            ax.spines['bottom'].set_color('#1f2937')
+            ax.tick_params(axis='x', colors='#1f2937')
+            ax.tick_params(axis='y', colors=axis_color)
+            for label in ax.get_yticklabels():
+                label.set_color(axis_color)
+            for label in ax.get_xticklabels():
+                label.set_color('#1f2937')
+        else:
+            ax.set_ylim(-0.5, 8.5)
+            axis_color = '#1f2937'
+            ax.spines['left'].set_color(axis_color)
+            ax.spines['bottom'].set_color(axis_color)
+            ax.tick_params(axis='x', colors=axis_color)
+            ax.tick_params(axis='y', colors=axis_color)
+            for label in ax.get_yticklabels() + ax.get_xticklabels():
+                label.set_color(axis_color)
+        
         ax.set_xlabel('Cycle Number', fontsize=12)
         ax.set_ylabel('Entropy (nats)', fontsize=12)
         
         # Update legend
         handles, labels = ax.get_legend_handles_labels()
-        label_map = {'natural': 'Natural', 'no_cycle_icl': 'No-Cycle ICL'}
+        label_map = {'natural': 'Natural', 'no_cycle_icl': 'ICL'}
         new_labels = [label_map.get(l, l) for l in labels]
         ax.legend(handles, new_labels, fontsize=10, frameon=True, framealpha=0.9)
         
@@ -275,6 +301,8 @@ def main():
     parser.add_argument("--n-samples", type=int, default=200)
     parser.add_argument("--output-dir", type=str, default="./outputs_entropy_evolution")
     parser.add_argument("--seed", type=int, default=42)
+    parser.add_argument("--replot-from-csv", action="store_true",
+                        help="Replot existing CSV files without recomputing the analysis")
     
     args = parser.parse_args()
     
@@ -299,33 +327,50 @@ def main():
     output_dir = Path(args.output_dir) / safe_model
     output_dir.mkdir(parents=True, exist_ok=True)
     
-    # Load texts once
-    print(f"Loading {args.n_samples} text samples...")
-    texts = load_text_dataset(seed=args.seed, n_samples=args.n_samples)
-    
-    # Process each checkpoint
     all_results = {}
     
-    for revision, cp_name in zip(checkpoints, checkpoint_names):
-        print(f"\n{'='*60}")
-        print(f"Processing checkpoint: {cp_name}")
-        print(f"{'='*60}")
+    if args.replot_from_csv:
+        print(f"Replotting from existing CSVs in {output_dir}")
+        for revision, cp_name in zip(checkpoints, checkpoint_names):
+            print(f"\n{'='*60}")
+            print(f"Replotting checkpoint: {cp_name}")
+            print(f"{'='*60}")
+            
+            csv_path = output_dir / f"entropy_results_{cp_name}.csv"
+            if not csv_path.exists():
+                print(f"  Missing CSV: {csv_path}")
+                continue
+            
+            df = pd.read_csv(csv_path)
+            plot_path = output_dir / f"logit_entropy_evolution_{cp_name}.png"
+            create_checkpoint_entropy_plot(df, cp_name, args.model_name, plot_path)
+            all_results[cp_name] = df
+    else:
+        # Load texts once
+        print(f"Loading {args.n_samples} text samples...")
+        texts = load_text_dataset(seed=args.seed, n_samples=args.n_samples)
         
-        df = run_entropy_analysis_for_checkpoint(
-            args.model_name, revision, texts,
-            n_samples=args.n_samples, device=device
-        )
-        
-        # Save CSV
-        csv_path = output_dir / f"entropy_results_{cp_name}.csv"
-        df.to_csv(csv_path, index=False)
-        print(f"  Saved CSV: {csv_path}")
-        
-        # Create plot
-        plot_path = output_dir / f"logit_entropy_evolution_{cp_name}.png"
-        create_checkpoint_entropy_plot(df, cp_name, args.model_name, plot_path)
-        
-        all_results[cp_name] = df
+        # Process each checkpoint
+        for revision, cp_name in zip(checkpoints, checkpoint_names):
+            print(f"\n{'='*60}")
+            print(f"Processing checkpoint: {cp_name}")
+            print(f"{'='*60}")
+            
+            df = run_entropy_analysis_for_checkpoint(
+                args.model_name, revision, texts,
+                n_samples=args.n_samples, device=device
+            )
+            
+            # Save CSV
+            csv_path = output_dir / f"entropy_results_{cp_name}.csv"
+            df.to_csv(csv_path, index=False)
+            print(f"  Saved CSV: {csv_path}")
+            
+            # Create plot
+            plot_path = output_dir / f"logit_entropy_evolution_{cp_name}.png"
+            create_checkpoint_entropy_plot(df, cp_name, args.model_name, plot_path)
+            
+            all_results[cp_name] = df
     
     # Create summary comparison plot
     print("\n" + "="*60)
