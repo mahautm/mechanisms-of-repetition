@@ -51,8 +51,10 @@ TASK_OUT_DIR="$OUT_DIR/$CKPT_SAFE"
 TASK_OUT_DIR="$TASK_OUT_DIR/chunk_${CHUNK_INDEX}_of_${CHUNK_COUNT}"
 mkdir -p "$TASK_OUT_DIR"
 
+PYTHON="/home/mmahaut/.conda/envs/parr/bin/python"
+
 PY_CMD=(
-  python -u "$ROOT/ablation_head_cycle_icl_natural.py"
+  "$PYTHON" -u "$ROOT/ablation_head_cycle_icl_natural.py"
   --model_name "$MODEL_NAME"
   --checkpoints
   "$CHECKPOINT"
@@ -75,10 +77,13 @@ if [[ "$USE_BNB" == "1" ]]; then
   PY_CMD+=(--use_bnb)
 fi
 
-CMD_STR="$(printf '%q ' "${PY_CMD[@]}")"
+# Optional extra flags, e.g. EXTRA_ARGS="--prompt_mode paired --baseline_replicate".
+if [[ -n "${EXTRA_ARGS:-}" ]]; then
+  read -r -a EXTRA <<< "$EXTRA_ARGS"
+  PY_CMD+=("${EXTRA[@]}")
+fi
 
 echo "[ablation-1k] model=$MODEL_NAME task=$TASK_ID layer=$LAYER checkpoint=$CHECKPOINT"
 echo "[ablation-1k] n_samples=$N_SAMPLES batch=$BATCH_SIZE chunk=$CHUNK_INDEX/$CHUNK_COUNT out=$TASK_OUT_DIR"
 
-srun --partition=alien --qos=alien --exclude=node044 --gres=gpu:1 --mem=96G \
-  bash -lc "source ~/.bashrc >/dev/null 2>&1 || true; conda activate parr && $CMD_STR"
+"${PY_CMD[@]}"

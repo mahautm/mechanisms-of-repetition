@@ -13,7 +13,7 @@ from typing import Dict, List, Tuple
 import numpy as np
 import pandas as pd
 
-from transformers import AutoModelForCausalLM, AutoTokenizer
+from transformers import AutoConfig, AutoModelForCausalLM, AutoTokenizer
 from datasets import load_dataset
 import torch
 
@@ -42,6 +42,93 @@ def find_cached_hf_models() -> List[str]:
     return models
 
 
+def _revision_exists(model_name: str, revision: str) -> bool:
+    """Check via the Hub API whether a revision genuinely exists for a model.
+
+    We deliberately do NOT infer "revision missing" from a from_pretrained()
+    failure: under concurrent load, a brand new revision being downloaded by
+    many workers at once can produce transient cache-corruption errors
+    (truncated safetensors headers, partially-written config.json) that look
+    identical to a missing revision but aren't — silently falling back to a
+    random-init model in that case would mislabel corrupted-load results as
+    genuine step0 data.
+    """
+    from huggingface_hub import list_repo_refs
+
+    try:
+        refs = list_repo_refs(model_name)
+        names = {b.name for b in refs.branches} | {t.name for t in refs.tags}
+        return revision in names
+    except Exception:
+        # Can't determine (offline, etc.) — don't guess; let the normal load
+        # path run and fail loudly if the revision truly can't be fetched.
+        return True
+
+
+def load_model_and_tokenizer(
+    model_name: str,
+    revision: Optional[str],
+    local_files_only: bool,
+    device_map: Optional[str],
+    device: torch.device,
+    prompt_size: int,
+):
+    """Load a (model, tokenizer) pair, optionally at a given revision.
+
+    revision="step0" is treated as the pre-training state: if the model
+    family doesn't publish an actual "step0" revision (the saved
+    initialization before any optimizer step), fall back to a
+    freshly-initialized model built from the same config — the best
+    available proxy for "before any training".
+    """
+    if revision == "step0" and not _revision_exists(model_name, "step0"):
+        print(
+            f"  [INFO] {model_name} has no 'step0' revision; using a "
+            "freshly-initialized (random-weight) model as the pre-training proxy."
+        )
+        config = AutoConfig.from_pretrained(
+            model_name, local_files_only=local_files_only, trust_remote_code=True
+        )
+        model = AutoModelForCausalLM.from_config(config, trust_remote_code=True)
+        tokenizer = AutoTokenizer.from_pretrained(model_name, local_files_only=local_files_only)
+        tokenizer.padding_side = "left"
+        tokenizer.model_max_length = prompt_size
+        # from_config() has no device_map/sharding support (unlike from_pretrained),
+        # so always place it on a single device in fp16 regardless of device_map.
+        # Casting via a constructor kwarg (torch_dtype=) doesn't reliably reach
+        # every submodule for custom (trust_remote_code) architectures like
+        # Apertus's xIELU MLP; converting the whole module post-construction does.
+        try:
+            model = model.to(device=device, dtype=torch.float16)
+        except Exception as e:
+            print(f"  Warning: moving model to {device} failed: {e}. Falling back to CPU.")
+            device = torch.device("cpu")
+            model = model.to(device=device, dtype=torch.float16)
+        return model, tokenizer, device
+
+    load_kwargs = {"local_files_only": local_files_only}
+    if revision:
+        load_kwargs["revision"] = revision
+    if device_map is not None and device_map.lower() != "none":
+        load_kwargs["device_map"] = device_map
+
+    model = AutoModelForCausalLM.from_pretrained(model_name, **load_kwargs)
+    tokenizer = AutoTokenizer.from_pretrained(
+        model_name, revision=revision, local_files_only=local_files_only
+    )
+
+    tokenizer.padding_side = "left"
+    tokenizer.model_max_length = prompt_size
+    if device_map is None or device_map.lower() == "none":
+        try:
+            model = model.to(device)
+        except Exception as e:
+            print(f"  Warning: moving model to {device} failed: {e}. Falling back to CPU.")
+            device = torch.device("cpu")
+            model = model.to(device)
+    return model, tokenizer, device
+
+
 def generate_and_detect(
     model_name: str,
     subset,
@@ -51,28 +138,17 @@ def generate_and_detect(
     device_str: str = "cuda",
     device_map: Optional[str] = None,
     prompt_size: int = 512,
+    revision: Optional[str] = None,
 ):
     device = torch.device(device_str if (device_str == "cpu" or torch.cuda.is_available()) else "cpu")
-    print(f"Trying model {model_name} (local_files_only={local_files_only}) on {device}")
+    label = f"{model_name}@{revision}" if revision else model_name
+    print(f"Trying model {label} (local_files_only={local_files_only}) on {device}")
     try:
-        # allow transformers to place model across devices if device_map is provided
-        load_kwargs = {"local_files_only": local_files_only}
-        if device_map is not None and device_map.lower() != "none":
-            load_kwargs["device_map"] = device_map
-        model = AutoModelForCausalLM.from_pretrained(model_name, **load_kwargs)
-        tokenizer = AutoTokenizer.from_pretrained(model_name, local_files_only=local_files_only)
-        tokenizer.padding_side = "left"
-        tokenizer.model_max_length = prompt_size
-        # if device_map was not provided, move model to single device
-        if device_map is None or device_map.lower() == "none":
-            try:
-                model = model.to(device)
-            except Exception as e:
-                print(f"  Warning: moving model to {device} failed: {e}. Falling back to CPU.")
-                device = torch.device("cpu")
-                model = model.to(device)
+        model, tokenizer, device = load_model_and_tokenizer(
+            model_name, revision, local_files_only, device_map, device, prompt_size
+        )
     except Exception as e:
-        print(f"  Skip {model_name}: not available locally or failed to load: {e}")
+        print(f"  Skip {label}: not available locally or failed to load: {e}")
         return None
 
     tokenizer.pad_token = tokenizer.eos_token if getattr(tokenizer, 'pad_token', None) is None else tokenizer.pad_token
@@ -121,7 +197,7 @@ def generate_and_detect(
         return None
 
     df = pd.DataFrame({
-        "model": model_name,
+        "model": label,
         "generated": outputs,
         "cycle": cycles,
         "cycle_length": cycle_lengths,
@@ -141,19 +217,25 @@ def main():
     parser.add_argument("--prompt_size", type=int, default=512, help="Max prompt length for minipile inputs")
     parser.add_argument("--max_new_tokens", type=int, default=1000)
     parser.add_argument("--batch_size", type=int, default=1)
+    default_models = [
+        "EleutherAI/pythia-70m",
+        "EleutherAI/pythia-1.4b",
+        "EleutherAI/pythia-6.9b",
+        "meta-llama/Llama-3.2-1B",
+        "allenai/OLMo-1B-hf",
+        "swiss-ai/Apertus-8B-2509",
+        "allenai/OLMo-2-1124-7B",
+    ]
     parser.add_argument(
         "--models",
         type=str,
-        default=(
-            "EleutherAI/pythia-70m,"
-            "EleutherAI/pythia-1.4b,"
-            "EleutherAI/pythia-6.9b,"
-            "meta-llama/Llama-3.2-1B,"
-            "allenai/OLMo-1B-hf,"
-            "swiss-ai/Apertus-8B-2509,"
-            "allenai/OLMo-2-1124-7B"
+        default=",".join(default_models + [f"{m}@step0" for m in default_models]),
+        help=(
+            "Comma-separated candidate model ids. Append '@step0' to a model id "
+            "to also run it at the pre-training state (the model's published "
+            "'step0' revision if it has one, otherwise a freshly-initialized "
+            "random-weight model as a proxy)."
         ),
-        help="Comma-separated candidate model ids",
     )
     parser.add_argument("--out_dir", type=str, default="/home/mmahaut/projects/parrots/plots")
     parser.add_argument("--allow_downloads", action="store_true", help="Allow downloading models from Hugging Face if not cached locally")
@@ -187,7 +269,9 @@ def main():
     end = start + subset_size if rank < n_ranks - 1 else len(full_subset)
     my_subset = full_subset.select(range(start, end))
 
-    for model_id in candidates:
+    for spec in candidates:
+        model_id, revision = spec.split("@", 1) if "@" in spec else (spec, None)
+        label = f"{model_id}@{revision}" if revision else model_id
         df = generate_and_detect(
             model_id,
             my_subset,
@@ -197,6 +281,7 @@ def main():
             device_str=args.device,
             device_map=args.device_map,
             prompt_size=args.prompt_size,
+            revision=revision,
         )
         if df is None:
             continue
@@ -212,7 +297,7 @@ def main():
         latency = float(df["elapsed_seconds"].iloc[0] / n_total) if n_total > 0 else np.nan
 
         results.append({
-            "model": model_id,
+            "model": label,
             "n_total": n_total,
             "n_with_cycles": n_with,
             "pct_cyclic": pct,
@@ -227,7 +312,7 @@ def main():
         out_dir = Path("/home/mmahaut/projects/parrots/plots")
         out_dir.mkdir(parents=True, exist_ok=True)
         df.to_csv(
-            out_dir / f"cycle_detection_{re.sub('[^0-9a-zA-Z_-]', '_', model_id)}{rank_suffix}.csv",
+            out_dir / f"cycle_detection_{re.sub('[^0-9a-zA-Z_-]', '_', label)}{rank_suffix}.csv",
             index=False,
         )
 

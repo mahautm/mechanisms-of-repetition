@@ -143,6 +143,26 @@ def get_attention_module(layer: torch.nn.Module) -> torch.nn.Module:
     raise ValueError("Could not find attention module")
 
 
+def get_output_projection(attention_module: torch.nn.Module) -> torch.nn.Module:
+    """Return the attention module's output projection (e.g. o_proj/dense/c_proj).
+
+    Hooking this submodule's *input* (rather than the attention module's
+    output) is required for a true per-head intervention: the output
+    projection is a full d_model x d_model mixing matrix, so slicing a
+    contiguous chunk of its *output* removes a block of residual-stream
+    coordinates that mixes contributions from every head, not one head's
+    contribution. Its *input* is still the concatenation of per-head
+    values, where a contiguous head_dim-sized slice does correspond to a
+    single head.
+    """
+    for attr in ["o_proj", "out_proj", "c_proj", "dense", "wo"]:
+        if hasattr(attention_module, attr):
+            candidate = getattr(attention_module, attr)
+            if isinstance(candidate, torch.nn.Module):
+                return candidate
+    raise ValueError("Could not find output projection in attention module")
+
+
 def infer_num_heads(model, attention_module: torch.nn.Module) -> int:
     for attr in ["num_heads", "n_heads", "num_attention_heads", "n_head"]:
         if hasattr(attention_module, attr):
@@ -195,29 +215,31 @@ def load_model_and_tokenizer(model_name: str, use_bnb: bool):
 
 
 def create_head_hook(head_idx: int, num_heads: int, mode: str, factor: float):
-    def hook_fn(module, inputs, output):
-        tuple_payload = None
-        if isinstance(output, tuple):
-            if not output:
-                return output
-            attn_out = output[0]
-            tuple_payload = output[1:]
-        else:
-            attn_out = output
+    """Create a pre-hook on the output projection that isolates one head.
 
-        head_dim = attn_out.size(-1) // num_heads
+    Registered as a forward-pre-hook on the attention module's output
+    projection (o_proj/dense/c_proj/...), so it sees the per-head
+    concatenation *before* it gets mixed across heads by that projection.
+    A contiguous head_dim-sized slice of this input corresponds to a real
+    head, unlike a slice of the projection's output.
+    """
+
+    def hook_fn(module, args):
+        if not args:
+            return args
+        hidden_states = args[0]
+
+        head_dim = hidden_states.size(-1) // num_heads
         s = head_idx * head_dim
         e = (head_idx + 1) * head_dim
 
-        attn_out = attn_out.clone()
+        hidden_states = hidden_states.clone()
         if mode == "amplify":
-            attn_out[:, :, s:e] = attn_out[:, :, s:e] * factor
+            hidden_states[..., s:e] = hidden_states[..., s:e] * factor
         elif mode == "suppress":
-            attn_out[:, :, s:e] = 0.0
+            hidden_states[..., s:e] = 0.0
 
-        if tuple_payload is not None:
-            return (attn_out, *tuple_payload)
-        return attn_out
+        return (hidden_states, *args[1:])
 
     return hook_fn
 
@@ -241,8 +263,9 @@ def register_policy_hooks(model, interventions: List[Dict]) -> List[torch.utils.
             logger.warning("Skipping invalid head L%sH%s (n_heads=%s)", layer_idx, head_idx, n_heads)
             continue
 
+        out_proj = get_output_projection(attn_mod)
         hook = create_head_hook(head_idx, n_heads, mode=mode, factor=factor)
-        handles.append(attn_mod.register_forward_hook(hook))
+        handles.append(out_proj.register_forward_pre_hook(hook))
 
     return handles
 
