@@ -224,7 +224,7 @@ def draw_panel(
         )
 
 
-def build_montage(model_dir: Path, metric_suffix_value: str) -> Path:
+def build_montage(model_dir: Path, metric_suffix_value: str, axis_limit: float = None, model_name: str = None) -> Path:
     csv_path = model_dir / "combined_ablation_effects.csv"
     if not csv_path.exists():
         raise FileNotFoundError(f"Missing {csv_path}")
@@ -248,7 +248,8 @@ def build_montage(model_dir: Path, metric_suffix_value: str) -> Path:
             float(np.nanmax(np.abs(panel["shared"]))),
             float(np.nanmax(np.abs(panel["specific"]))),
         )
-    axis_limit = rounded_axis_limit(global_abs * 1.15)
+    if axis_limit is None:
+        axis_limit = rounded_axis_limit(global_abs * 1.15)
 
     # Geometry tuned for a 2x2 grid on the left and one larger panel on the right.
     fig = plt.figure(figsize=(12.8, 7.9))
@@ -296,7 +297,7 @@ def build_montage(model_dir: Path, metric_suffix_value: str) -> Path:
         title_inside=True,
     )
 
-    model_name = model_name_from_dir(model_dir.name)
+    model_name = model_name or model_name_from_dir(model_dir.name)
 
     category_palette = [
         ("S>0 Repetition-Suppressing + D>0 ICL-Boosted", "#1b9e77"),
@@ -333,7 +334,7 @@ def build_montage(model_dir: Path, metric_suffix_value: str) -> Path:
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="Combine checkpoint scatters into one summary figure per model")
-    parser.add_argument("--plots-root", type=str, default="/home/mmahaut/projects/parrots/plots")
+    parser.add_argument("--plots-root", type=str, default="plots")
     parser.add_argument("--metric", choices=["rep_rate", "cycle_count"], default="rep_rate")
     parser.add_argument("--include-apertus", action="store_true")
     args = parser.parse_args()

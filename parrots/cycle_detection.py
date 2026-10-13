@@ -1,8 +1,5 @@
-import pandas as pd
-from transformers import AutoTokenizer
-from tqdm import tqdm
-import re
-import glob 
+"""Trailing-cycle detection used to define repetition throughout the project."""
+
 
 def detect_cycles(tokens, return_index=False, pad_token_id=None):
     # Only detect cycles that repeat until the end of the sequence.
@@ -49,25 +46,3 @@ def detect_cycles(tokens, return_index=False, pad_token_id=None):
     if return_index:
         return cycle, cycle_size, cycle_count, cycle_start_index
     return cycle, cycle_size, cycle_count
-
-
-def process_generation_column(df, generation_col='generated', tokenizer=None):
-    tqdm.pandas()
-    # deal with nan values
-    df[generation_col] = df[generation_col].fillna("")
-    df['tokens'] = df.progress_apply(lambda x: tokenizer(x[generation_col], truncation=True, padding=True)['input_ids'], axis=1)
-    print(df['tokens'])
-    df['cycle'], df['cycle_size'], df['cycle_count'] = zip(*df['tokens'].progress_apply(detect_cycles))
-    df['cycle'] = df['cycle'].progress_apply(tokenizer.decode)
-    # drop tokens column
-    df = df.drop(columns=['tokens'])
-    return df
-
-if __name__ == '__main__':
-    # Initialize the tokenizer
-    tokenizer = AutoTokenizer.from_pretrained("facebook/opt-1.3b")    
-    for file in glob.glob("/home/mmahaut/projects/parrots/outputs/*/*/slot_filling_results.csv"):
-        df = pd.read_csv(file)
-        df = df.dropna(subset=['generated'])
-        df = process_generation_column(df, tokenizer=tokenizer)
-        df.to_csv(file.replace('slot_filling_results.csv', 'slot_filling_results_with_cycles.csv'), index=False)

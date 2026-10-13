@@ -157,6 +157,8 @@ def generate_and_detect(
     cycles = []
     cycle_lengths = []
     cycle_counts = []
+    cycle_starts = []
+    gen_lengths = []
     start_time = time.perf_counter()
 
     for i in range(0, len(subset), batch_size):
@@ -182,11 +184,13 @@ def generate_and_detect(
             # remove prompt tokens if present
             input_len = toked["input_ids"].shape[1]
             gen_only = gen[b, input_len:]
-            c, cs, cc, _ = detect_cycles(gen_only, return_index=True)
+            c, cs, cc, cstart = detect_cycles(gen_only, return_index=True)
             outputs.append(tokenizer.decode(gen[b], skip_special_tokens=True))
             cycles.append(c.cpu().numpy().tolist() if hasattr(c, 'cpu') else c)
             cycle_lengths.append(int(cs) if cs is not None else 0)
             cycle_counts.append(int(cc) if cc is not None else 0)
+            cycle_starts.append(int(cstart) if cc else -1)
+            gen_lengths.append(int(gen_only.shape[0]))
 
         del toked, gen
         torch.cuda.empty_cache()
@@ -202,6 +206,8 @@ def generate_and_detect(
         "cycle": cycles,
         "cycle_length": cycle_lengths,
         "cycle_count": cycle_counts,
+        "cycle_start_index": cycle_starts,
+        "gen_length": gen_lengths,
         "elapsed_seconds": elapsed_seconds,
     })
     return df
@@ -237,7 +243,7 @@ def main():
             "random-weight model as a proxy)."
         ),
     )
-    parser.add_argument("--out_dir", type=str, default="/home/mmahaut/projects/parrots/plots")
+    parser.add_argument("--out_dir", type=str, default="plots")
     parser.add_argument("--allow_downloads", action="store_true", help="Allow downloading models from Hugging Face if not cached locally")
     parser.add_argument("--device", type=str, default=("cuda" if torch.cuda.is_available() else "cpu"), help="Device to run models on: cuda or cpu")
     parser.add_argument("--device_map", type=str, default=None, help="Device map to pass to transformers.from_pretrained (e.g., 'auto' or 'balanced'), or 'none' to disable")
@@ -309,7 +315,7 @@ def main():
         })
 
         # save per-model csv
-        out_dir = Path("/home/mmahaut/projects/parrots/plots")
+        out_dir = Path(args.out_dir)
         out_dir.mkdir(parents=True, exist_ok=True)
         df.to_csv(
             out_dir / f"cycle_detection_{re.sub('[^0-9a-zA-Z_-]', '_', label)}{rank_suffix}.csv",
@@ -321,7 +327,7 @@ def main():
         return
 
     df_results = pd.DataFrame(results)
-    out_csv = Path(f"/home/mmahaut/projects/parrots/plots/cycle_descriptive_stats{rank_suffix}.csv")
+    out_csv = Path(args.out_dir) / (f"cycle_descriptive_stats{rank_suffix}.csv")
     df_results.to_csv(out_csv, index=False)
     print(f"Saved summary to {out_csv}")
 
@@ -335,7 +341,7 @@ def main():
         summary_lines.append("")
 
     summary_text = "\n".join(summary_lines)
-    summary_file = Path(f"/home/mmahaut/projects/parrots/plots/CYCLE_STATS_SUMMARY{rank_suffix}.md")
+    summary_file = Path(args.out_dir) / (f"CYCLE_STATS_SUMMARY{rank_suffix}.md")
     summary_file.write_text(summary_text)
     print(f"Saved markdown summary to {summary_file}")
     print(summary_text)
@@ -356,7 +362,7 @@ def main():
             f"{repetitions:.2f} & {cycle_size:.2f} & {cycle_number:.2f} & {latency:.3f} \\")
     latex_lines.append(r"\end{tabular}")
     latex_table = "\n".join(latex_lines)
-    latex_file = Path(f"/home/mmahaut/projects/parrots/plots/CYCLE_STATS_TABLE{rank_suffix}.tex")
+    latex_file = Path(args.out_dir) / (f"CYCLE_STATS_TABLE{rank_suffix}.tex")
     latex_file.write_text(latex_table)
     print(f"Saved LaTeX table to {latex_file}")
     print(latex_table)

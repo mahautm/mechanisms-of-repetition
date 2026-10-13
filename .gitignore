@@ -18,8 +18,8 @@ slurm-*.err
 
 # Generated experiment outputs
 outputs/
-outputs_*/
-plots/
+outputs_*
+plots
 lenses/
 lenses_*/
 logs/
