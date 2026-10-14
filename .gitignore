@@ -39,4 +39,4 @@ data/confidence_training_*/
 *.npz
 
 # Cache / OS noise
-.DS_Store
+.DS_Storefigures
