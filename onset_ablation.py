@@ -37,7 +37,9 @@ def cycle_stats(tokens: torch.Tensor, prompt_len: int, max_new: int):
 
 
 def head_sets(scores: pd.DataFrame, ks: List[int], random_ks: List[int], n_random: int, seed: int):
-    sets = [("none", 0, []), ("L12H0", 0, [(12, 0)])]
+    sets = [("none", 0, [])]
+    if ((scores.layer == 12) & (scores["head"] == 0)).any():  # the suppressor head found in Pythia-1.4B
+        sets.append(("L12H0", 0, [(12, 0)]))
     for score in ["induction", "prev_token"]:
         ranked = scores.sort_values(score, ascending=False)
         for k in ks:
