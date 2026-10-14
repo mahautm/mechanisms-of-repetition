@@ -236,6 +236,33 @@ def set_default_attn(model):
         model.config._attn_implementation = "sdpa"
 
 
+def compute_scores(args, model, prompts, cond, device, ckpt_dir):
+    """Attention scores and mean activations in fp32: fp16 eager attention overflows to NaN for
+    some heads of trained Pythia checkpoints."""
+    model.float()
+    set_eager(model)
+    try:
+        scores, mean_z = attention_scores_and_means(model, prompts, cond, args.raw_prompt_tokens, args.batch_size, device)
+    finally:
+        set_default_attn(model)
+        model.half()
+    n_nan = int(scores[["induction", "prev_token"]].isna().any(axis=1).sum())
+    if n_nan or not torch.isfinite(mean_z).all():
+        raise RuntimeError(f"non-finite attention scores for {n_nan} heads")
+    scores.insert(0, "checkpoint", args.checkpoint)
+    scores.to_csv(ckpt_dir / "head_scores.csv", index=False)
+    return scores, mean_z
+
+
+def run_scores(args, model, device, ckpt_dir):
+    """Recompute head scores and mean activations for an existing baseline (tokens unchanged)."""
+    cache = torch.load(ckpt_dir / "baseline.pt", weights_only=False)
+    prompts = cache["tokens"][:, : cache["prompt_len"]]
+    _, cache["mean_z"] = compute_scores(args, model, prompts, cache["cond"], device, ckpt_dir)
+    torch.save(cache, ckpt_dir / "baseline.pt")
+    print(f"  rewrote head_scores.csv and mean_z in {ckpt_dir}")
+
+
 # ---------------------------------------------------------------------------- stages
 
 def run_baseline(args, model, tokenizer, device, ckpt_dir):
@@ -244,11 +271,7 @@ def run_baseline(args, model, tokenizer, device, ckpt_dir):
     tokens = generate_continuations(model, prompts, args.max_new_tokens, args.gen_batch_size, device)
     masks, starts, sizes, counts = region_masks(tokens.numpy(), prompts.shape[1], args.raw_prompt_tokens)
 
-    set_eager(model)
-    scores, mean_z = attention_scores_and_means(model, prompts, cond, args.raw_prompt_tokens, args.batch_size, device)
-    set_default_attn(model)
-    scores.insert(0, "checkpoint", args.checkpoint)
-    scores.to_csv(ckpt_dir / "head_scores.csv", index=False)
+    scores, mean_z = compute_scores(args, model, prompts, cond, device, ckpt_dir)
 
     torch.save({
         "tokens": tokens, "cond": cond, "source": source, "prompt_len": prompts.shape[1],
@@ -343,7 +366,7 @@ def run_group(args, model, device, ckpt_dir):
 
 def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("--stage", choices=["baseline", "single", "group"], required=True)
+    ap.add_argument("--stage", choices=["baseline", "scores", "single", "group"], required=True)
     ap.add_argument("--model_name", default="EleutherAI/pythia-1.4b")
     ap.add_argument("--checkpoint", required=True)
     ap.add_argument("--output_dir", default="outputs_teacher_forced/pythia14b")
@@ -374,6 +397,8 @@ def main():
 
     if args.stage == "baseline":
         run_baseline(args, model, tokenizer, device, ckpt_dir)
+    elif args.stage == "scores":
+        run_scores(args, model, device, ckpt_dir)
     elif args.stage == "single":
         run_single(args, model, device, ckpt_dir)
     else:
