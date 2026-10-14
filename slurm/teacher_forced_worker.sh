@@ -31,7 +31,6 @@ else
   CKPT="${CKPTS[$TASK]}"
 fi
 echo "[tf] stage=$STAGE model=$MODEL_NAME ckpt=$CKPT ablation=$ABLATION ${EXTRA[*]:-}"
-set +u; source ~/.bashrc
-conda activate parr; set -u
-python -u teacher_forced_ablation.py --stage "$STAGE" --model_name "$MODEL_NAME" --checkpoint "$CKPT" \
+PYTHON="${PYTHON:-/home/mmahaut/.conda/envs/parr/bin/python}"  # conda activate does not work in batch shells
+"$PYTHON" -u teacher_forced_ablation.py --stage "$STAGE" --model_name "$MODEL_NAME" --checkpoint "$CKPT" \
   --output_dir "$OUT_DIR" --ablation "$ABLATION" "${EXTRA[@]}" ${EXTRA_ARGS:-}
